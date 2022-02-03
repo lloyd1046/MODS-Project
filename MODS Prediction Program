@@ -1,0 +1,63 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import svm
+from sklearn.preprocessing import StandardScaler
+stdS=StandardScaler()
+from sklearn.decomposition import PCA
+pca=PCA(n_components=21)
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import NearestCentroid
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import VotingClassifier
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+import random
+
+#Machine Learning Function
+def run_machine_learning(repeat):
+    accuracy_sum=0
+    
+    for i in range(repeat):
+        X_train,X_test,Y_train,Y_test=train_test_split(X,Y, test_size=0.3, random_state=random.randint(1,10000))
+        X_train=stdS.fit_transform(X_train)
+        X_test=stdS.transform(X_test)
+        #X_train=pca.fit_transform(X_train)
+        #X_test=pca.transform(X_test)
+        #model=LogisticRegression()
+        #model=DecisionTreeClassifier()
+        #model=svm.SVC()
+        #model=NearestCentroid()
+        #model=KNeighborsClassifier(n_neighbors=10)
+        #model=RandomForestClassifier(n_estimators=100)
+        #model=GaussianNB()
+        #model=AdaBoostClassifier(n_estimators=100)
+        #model=GradientBoostingClassifier(n_estimators=100)
+        voting_estimators=[("ABC",AdaBoostClassifier(n_estimators=100)),("GBC",GradientBoostingClassifier(n_estimators=100)),("RFC",RandomForestClassifier(random_state=1)),("GNB",GaussianNB())]
+        model=VotingClassifier(estimators=voting_estimators, voting="soft")
+        model.fit(X_train,Y_train)
+        prediction=model.predict(X_test)
+        accuracy_sum+=accuracy_score(Y_test,prediction)
+    accuracy_res=accuracy_sum/repeat
+    return accuracy_res
+
+#Get Data
+patientData=pd.read_csv("multi_dataset.csv")
+
+#Filter Data
+missingPercentage=(patientData.isnull().sum())/len(patientData)*100
+filteredColumns=[]
+for i in range(patientData.shape[1]):
+    if(missingPercentage[i]<10):
+        filteredColumns.append(patientData.columns[i])
+new_patientData=patientData[filteredColumns].copy()
+
+#Machine Learning
+new_patientData.interpolate(inplace=True)
+X=new_patientData.iloc[:,0:-1]
+Y=new_patientData["Label"]
+print(run_machine_learning(repeat=100))
